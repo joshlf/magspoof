@@ -1,0 +1,4 @@
+magspoof
+========
+
+Magnetic card spoofer
