@@ -1,8 +1,9 @@
 void writeLow();
 void setPolarity(int polarity);
 void writeBit(int bit);
-void writeNumber(int num);
-void writeSequence(int len, int sequence[]);
+unsigned char *getEncoding(unsigned char character);
+void writeEncodedCharacter(char character);
+void writeSequence(int len, unsigned char sequence[]);
 
 int leftPin = 10;
 int rightPin = 11;
@@ -66,51 +67,59 @@ void writeBit(int bit) {
   delayMicroseconds(clockSpeed);
 }
 
-
-int encodings[] = {
-  0x01, // 0b00001
-  0x10, // 0b10000
-  0x08, // 0b01000
-  0x19, // 0b11001
-  0x04, // 0b00100
-  0x15, // 0b10101
-  0x0D, // 0b01101
-  0x1C, // 0b11100
-  0x02, // 0b00010
-  0x13, // 0b10011
-  0x0B, // 0b01011
-  0x1A, // 0b11010
-  0x07, // 0b00111
-  0x16, // 0b10110
-  0x0E, // 0b01110
-  0x1F, // 0b11111
+unsigned char encodings[][5] = {
+  {0, 0, 0, 0, 1},  // 0
+  {1, 0, 0, 0, 0},  // 1
+  {0, 1, 0, 0, 0},  // 2
+  {1, 1, 0, 0, 1},  // 3
+  {0, 0, 1, 0, 0},  // 4
+  {1, 0, 1, 0, 1},  // 5
+  {0, 1, 1, 0, 1},  // 6
+  {1, 1, 1, 0, 0},  // 7
+  {0, 0, 0, 1, 0},  // 8
+  {1, 0, 0, 1, 1},  // 9
+  {0, 1, 0, 1, 1},  // : (control)
+  {1, 1, 0, 1, 0},  // ; (start sentinel)
+  {0, 0, 1, 1, 1},  // < (control)
+  {1, 0, 1, 1, 0},  // = (field separator)
+  {0, 1, 1, 1, 0},  // > (control)
+  {1, 1, 1, 1 ,1}   // ? (field separator)
 };
 
-void writeNumber(int num) {
-  writeBit(num & 0x10 >> 4);
-  writeBit(num & 0x08 >> 3);
-  writeBit(num & 0x04 >> 2);
-  writeBit(num & 0x02 >> 1);
-  writeBit(num & 0x01);
+unsigned char* getEncoding(unsigned char character) {
+  return encodings[character - '0'];
 }
 
-void writeSequence(int len, int sequence[]) {
+void writeCharacterEncoding(unsigned char *encoding) {
+  writeBit(encoding[0]);
+  writeBit(encoding[1]);
+  writeBit(encoding[2]);
+  writeBit(encoding[3]);
+  writeBit(encoding[4]);
+}
+
+void writeSequence(int len, unsigned char sequence[]) {
+  for (int i = 0; i < 50; i++) {
+    writeBit(0);
+  }
+
+  unsigned char parity = 0;
   for (int i = 0; i < len; i++) {
-    writeNumber(sequence[i]);
+    parity ^= sequence[i];
+    unsigned char *encoding = getEncoding(sequence[i]);
+    writeCharacterEncoding(encoding);
+  }
+  writeCharacterEncoding(encodings[parity]);
+
+  for (int i = 0; i < 50; i++) {
+    writeBit(0);
   }
 }
  
-void loop() {
-  for(int i = 0; i < 20; i ++) {
-    writeBit(0);
-  }
-  
-  // Placeholder
-  writeSequence(12, (int[]){11, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15});
+void loop() { 
+  unsigned char seq[] = {';', '6', '0', '0', '9', '5', '5', '9', '3', '3', '4', '0', '5', '0', '5', '8', '3', '?'};
+  writeSequence(sizeof(seq), seq);
 
-  for(int i = 0; i < 20; i ++) {
-    writeBit(0);
-  }
   writeLow();
   delay(500);
 }
