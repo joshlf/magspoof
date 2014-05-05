@@ -10,12 +10,17 @@ int rightPin = 11;
 int clockSpeed = 500;
 int polarity = 0;
 
+unsigned char *buf;
+
 void setup() {
+  buf = malloc(81);
   // The interrupts are key to reliable
   // reading of the clock and data feed
   pinMode(leftPin, OUTPUT);
-  pinMode(rightPin, OUTPUT); 
-  
+  pinMode(rightPin, OUTPUT);
+  Serial.begin(9600);
+  // Poor man's no timeout
+  Serial.setTimeout(0xFFFFFFFFFFFFFFFF);
 }
 
 // Set the voltage to 0
@@ -116,10 +121,9 @@ void writeSequence(int len, unsigned char sequence[]) {
   }
 }
  
-void loop() { 
-  unsigned char seq[] = {';', '6', '0', '0', '9', '5', '5', '9', '3', '3', '4', '0', '5', '0', '5', '8', '3', '?'};
-  writeSequence(sizeof(seq), seq);
-
+void loop() {
+  Serial.readBytes(buf, 81);
+  writeSequence(buf[80], buf);
   writeLow();
   delay(500);
 }
