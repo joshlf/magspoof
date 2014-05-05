@@ -13,7 +13,7 @@ int polarity = 0;
 unsigned char *buf;
 
 void setup() {
-  buf = malloc(81);
+  buf = (unsigned char*)malloc(81);
   // The interrupts are key to reliable
   // reading of the clock and data feed
   pinMode(leftPin, OUTPUT);
@@ -122,9 +122,28 @@ void writeSequence(int len, unsigned char sequence[]) {
 }
  
 void loop() {
-  Serial.readBytes(buf, 81);
-  writeSequence(buf[80], buf);
-  writeLow();
-  delay(500);
-}
+  while (1) {
+    int i = 0;
+    while (i < 81) {
+      int b = Serial.read();
+      if (b == -1) {
+        continue;
+      }
+      if (b == 0) {
+        break;
+      }
+      buf[i] = (unsigned char)b;
+      i++;
+    }
 
+    buf[i] = '\0';
+    Serial.print((char *)buf);
+    Serial.print(" (");
+    Serial.print(i);
+    Serial.print(" characters)");
+    Serial.println();
+
+    writeSequence(i, buf);
+    writeLow();
+  }
+}

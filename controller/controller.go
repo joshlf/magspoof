@@ -5,21 +5,31 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
+
+	"github.com/huin/goserial"
 )
 
 func main() {
-	if len(os.Args) != 3 {
-		fmt.Fprintf(os.Stderr, "%v <device> <data>\n", os.Args[0])
+	if len(os.Args) != 4 {
+		fmt.Fprintf(os.Stderr, "%v <device> <baud> <data>\n", os.Args[0])
 		os.Exit(1)
 	}
 
-	f, err := os.Open(os.Args[1])
+	baud, err := strconv.Atoi(os.Args[2])
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error opening device: %v\n", err)
+		fmt.Fprintf(os.Stderr, "baud must be numerical\n")
+		os.Exit(1)
+	}
+
+	c := &goserial.Config{Name: os.Args[1], Baud: baud}
+	s, err := goserial.OpenPort(c)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error connecting to device: %v\n", err)
 		os.Exit(2)
 	}
 
-	err = sendBytes(f, []byte(os.Args[2]))
+	err = sendBytes(s, []byte(os.Args[3]))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error writing data: %v\n", err)
 		os.Exit(3)
@@ -34,7 +44,6 @@ func sendBytes(w io.Writer, buf []byte) error {
 	}
 
 	copy(b[:], buf)
-	b[80] = byte(len(buf))
-	_, err := w.Write(b[:])
+	_, err := w.Write(b[:len(buf)+1])
 	return err
 }
